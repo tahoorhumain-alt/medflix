@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.FileProviders; // Added
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO; // Added
 using WebHostStreaming.Middlewares;
 using WebHostStreaming.StartupExtensions;
 
@@ -19,7 +20,6 @@ namespace WebHostStreaming
     {
         const string ALLOW_SPECIFIC_ORIGIN = "AllowSpecificOrigin";
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors(options =>
@@ -30,12 +30,10 @@ namespace WebHostStreaming
             });
 
             services.AddControllers();
-
             services.AddProviders();
             services.AddConverters();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -43,6 +41,44 @@ namespace WebHostStreaming
                 app.UseDeveloperExceptionPage();
             }
 
+            // 1. Setup paths based on your Dockerfile
+            var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var homePath = Path.Combine(webRoot, "home");
+            var backofficePath = Path.Combine(webRoot, "backoffice");
+
+            // 2. Serve the React frontend from the 'home' folder at the root URL (/)
+            if (Directory.Exists(homePath))
+            {
+                app.UseDefaultFiles(new DefaultFilesOptions
+                {
+                    FileProvider = new PhysicalFileProvider(homePath),
+                    RequestPath = ""
+                });
+
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(homePath),
+                    RequestPath = ""
+                });
+            }
+
+            // 3. Serve the Backoffice frontend from the 'backoffice' folder at /backoffice
+            if (Directory.Exists(backofficePath))
+            {
+                app.UseDefaultFiles(new DefaultFilesOptions
+                {
+                    FileProvider = new PhysicalFileProvider(backofficePath),
+                    RequestPath = "/backoffice"
+                });
+
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(backofficePath),
+                    RequestPath = "/backoffice"
+                });
+            }
+
+            // 4. Fallback for any other static files in wwwroot
             app.UseStaticFiles();
 
             app.UseRouting();
@@ -55,6 +91,7 @@ namespace WebHostStreaming
 
             app.UseEndpoints(endpoints =>
             {
+                // Your API route
                 endpoints.MapControllerRoute(
                  name: "default",
                  pattern: "{controller=Movies}/{action=Suggested}/{id?}");
@@ -64,6 +101,10 @@ namespace WebHostStreaming
                     context.Response.ContentType = "text/plain";
                     await context.Response.WriteAsync("pong");
                 });
+
+                // SPA Fallback: If a URL isn't an API or a real file, return React's index.html
+                // This prevents 404s when a user refreshes a page inside the React app
+                endpoints.MapFallbackToFile("index.html");
             });
         }
     }

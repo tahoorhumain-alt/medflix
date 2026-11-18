@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders; // Added
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.IO; // Added
+using System.IO;
 using WebHostStreaming.Middlewares;
 using WebHostStreaming.StartupExtensions;
 
@@ -41,7 +41,7 @@ namespace WebHostStreaming
                 app.UseDeveloperExceptionPage();
             }
 
-            // 1. Setup paths based on your Dockerfile
+            // 1. Setup paths
             var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var homePath = Path.Combine(webRoot, "home");
             var backofficePath = Path.Combine(webRoot, "backoffice");
@@ -62,7 +62,7 @@ namespace WebHostStreaming
                 });
             }
 
-            // 3. Serve the Backoffice frontend from the 'backoffice' folder at /backoffice
+            // 3. Serve the Backoffice frontend from the 'backoffice' folder
             if (Directory.Exists(backofficePath))
             {
                 app.UseDefaultFiles(new DefaultFilesOptions
@@ -78,7 +78,7 @@ namespace WebHostStreaming
                 });
             }
 
-            // 4. Fallback for any other static files in wwwroot
+            // 4. Fallback for any other static files
             app.UseStaticFiles();
 
             app.UseRouting();
@@ -91,7 +91,7 @@ namespace WebHostStreaming
 
             app.UseEndpoints(endpoints =>
             {
-                // Your API route
+                // API routing
                 endpoints.MapControllerRoute(
                  name: "default",
                  pattern: "{controller=Movies}/{action=Suggested}/{id?}");
@@ -102,9 +102,9 @@ namespace WebHostStreaming
                     await context.Response.WriteAsync("pong");
                 });
 
-                // SPA Fallback: If a URL isn't an API or a real file, return React's index.html
-                // This prevents 404s when a user refreshes a page inside the React app
-                endpoints.MapFallbackToFile("index.html");
+                // --- FIX APPLIED HERE ---
+                // SPA Fallback: Point to the 'home' folder where index.html actually lives
+                endpoints.MapFallbackToFile("home/index.html");
             });
         }
     }

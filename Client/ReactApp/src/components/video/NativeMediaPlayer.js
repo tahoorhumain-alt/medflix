@@ -1,45 +1,23 @@
-import AppMode from "../../services/appMode";
-import CircularProgressBar from "../common/CircularProgressBar";
-import ModalWindow from "../modal/ModalWindow";
-import { useEffect } from "react";
+import React from 'react';
 
-export default function NativeMediaPlayer({
-    mediaDetails,
-    currentTime,
-    shouldRestart,
-    episodeNumber,
-    seasonNumber,
-    videoSource,
-    mediaSources,
-    subtitlesSources,
-    visible,
-    onCloseClick }) {
+export default function NativeMediaPlayer({ videoSource, visible, onCloseClick }) {
+    // If the player is not supposed to be visible, render nothing
+    if (!visible) return null;
 
-    useEffect(() => {
-        if (visible) {
-            window.getMediaPlayerParameters = () => {
-                return {
-                    watchMedia: {
-                        media: mediaDetails,
-                        currentTime: shouldRestart ? 0 : currentTime,
-                        episodeNumber: mediaDetails?.seasonsCount > 0 ? episodeNumber : 0,
-                        seasonNumber: mediaDetails?.seasonsCount > 0 ? seasonNumber : 0,
-                        videoSource
-                    },
-                    mediaSources: mediaSources.flatMap(ms => ms.sources),
-                    subtitlesSources
-                };
-            }
-            window.getAppMode = () => AppMode.getActiveMode().urlKey;
-            window.closeNativeMediaPlayer = () => onCloseClick();
-            window.location.href = `http://playMedia`;
-        }
-        return () => {
-            delete window.closeNativeMediaPlayer;
-            delete window.getMediaPlayerParameters;
-            delete window.getAppMode;
-        }
-    }, [visible]);
-
-    return <ModalWindow content={<CircularProgressBar size="x-large" visible position="center" />} visible={visible} />
+    return (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'black', zIndex: 9999 }}>
+            <button 
+                onClick={onCloseClick} 
+                style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10000, padding: '10px', background: 'red', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+            >
+                Close Player
+            </button>
+            <video 
+                src={videoSource} 
+                controls 
+                autoPlay 
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            />
+        </div>
+    );
 }
